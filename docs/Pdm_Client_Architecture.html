@@ -1,0 +1,523 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pdm Client Architecture &#8212; PDM  documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to PDM’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">PDM</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=massimo-nocentini&repo=PdmClientArchitectureDoc&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pdm Client Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#abstract-architecture">Abstract architecture</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#subsystem-setup-errors">Subsystem setup errors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#subsystem-dependencies">Subsystem dependencies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#starting-and-stopping-the-system">Starting and stopping the system</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#root-application-builder">Root application builder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#system-configuration-types">System configuration types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-of-subsystems">Configuration of subsystems</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to PDM’s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+              <div class="related top">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="index.html" title="Previous document">Welcome to PDM’s documentation!</a>
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="pdm-client-architecture">
+<span id="id1"></span><h1>Pdm Client Architecture<a class="headerlink" href="#pdm-client-architecture" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The executable software performing operations on document management is called the pdm client. To perform its operations, it has to be connected with the following services:</p>
+<ul class="simple">
+<li><p>A PostgreSQL database service providing access to all persistent application data</p></li>
+<li><p>A delta file service managing download and upload of remotely stored document files as well as preview images</p></li>
+</ul>
+<p>To deal with document files on client side, e.g. to open them from within the pdm executable, a special executable is called that is part of every pdm installation (PdmOfficeTool.exe).</p>
+<div class="section" id="abstract-architecture">
+<h3>Abstract architecture<a class="headerlink" href="#abstract-architecture" title="Permalink to this headline">¶</a></h3>
+<p>The pdm client is based on an abstract architecture providing support for desktop applications of any purpose:</p>
+<ul class="simple">
+<li><p>A system class based on  <a class="reference internal" href="#pharo-class-pdmabstractrootappbuilder" title="pharo-class-pdmabstractrootappbuilder"><code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmAbstractRootAppBuilder</span></code></a> performs the startup via <code class="xref pharo pharo-mref docutils literal notranslate"><span class="pre">PdmAbstractSystem</span> <span class="pre">class&gt;&gt;#start</span></code>.</p></li>
+<li><p>System startup first performs a search of the available system configuration (e.g. via environment variable
+or predefined file name) to find the respective subclass of <code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmAbstractSystemConfig</span></code> providing
+the concrete configuration of the system (see <a class="reference internal" href="#pdm-system-configuration-types"><span class="std std-ref">System configuration types</span></a>).</p></li>
+<li><p>All concrete functionality expected to be available in the started application has to be defined inside of
+the chosen configuration instance. Available functionalities are organized by means of subsytems
+(see <code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmSubsystem</span></code> and <a class="reference internal" href="#pdm-configuration-of-subsystems"><span class="std std-ref">Configuration of subsystems</span></a>). So what a system config contains is
+in fact a list of subsystem configurations (see class <code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmSubsystemConfig</span></code>).</p></li>
+<li><p>A subsystem configuration is a generic key-value-store that is associated with the name of the subsystem.</p></li>
+</ul>
+<p>Based on this architecture, all subsytems are created and setup in the given order. Most important message herefor are:</p>
+<ul class="simple">
+<li><p><code class="xref pharo pharo-mref docutils literal notranslate"><span class="pre">PdmSubsystem&gt;&gt;#checkSubsystemConfiguration</span></code> to validate the specific configuration settings, returning
+either a string describing the problem or nil.</p></li>
+<li><p><code class="xref pharo pharo-mref docutils literal notranslate"><span class="pre">PdmSubsystem&gt;&gt;#privateSetup</span></code> to make the subsystem ready for being started. It is only called after successful
+run of <code class="xref pharo pharo-mref docutils literal notranslate"><span class="pre">PdmSubsystem&gt;&gt;#checkSubsystemConfiguration</span></code>.</p></li>
+</ul>
+<p>Subclass of PdmAbstractSystem representing the pdm application is <code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmSystem</span></code>.</p>
+<div class="section" id="subsystem-setup-errors">
+<h4>Subsystem setup errors<a class="headerlink" href="#subsystem-setup-errors" title="Permalink to this headline">¶</a></h4>
+<p>After trying to prepare a subsystem, any occurring problem text is kept in
+instance variable <code class="docutils literal notranslate"><span class="pre">setupProblemText</span></code> of <code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmSubsystem</span></code> for
+further handling. Mind that a user-friendly error handling is not yet possible
+as the needed subsystems will not have been started at that moment.</p>
+</div>
+<div class="section" id="subsystem-dependencies">
+<h4>Subsystem dependencies<a class="headerlink" href="#subsystem-dependencies" title="Permalink to this headline">¶</a></h4>
+<p>Some of the systems typically expect others to exist and being started before they can be started either. Default implementation to check dependencies is</p>
+<span class="target" id="pharo-compiledMethod-0"></span><div class="highlight-smalltalk notranslate" id="pharo-compiledmethod-pdmsubsystem-class-checkprerequisitesin"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="c">&quot;PdmSubsystem class, protocol instance creation&quot;</span>
+<span class="nf">checkPrerequisitesIn:</span> <span class="nv">aPdmSystem</span>
+
+   <span class="c">&quot;override me in subclasses to check if the system has all the required subsystems already loaded and cofigured&quot;</span>
+
+   <span class="bp">self</span> <span class="nf">prerequisiteSubsystemKeys</span> <span class="nf">do:</span> [ <span class="o">:</span><span class="nv">subsystemName</span> <span class="o">|</span> 
+      (<span class="nv">aPdmSystem</span> <span class="nf">hasSubsystemNamed:</span> <span class="nv">subsystemName</span>) <span class="nb">ifFalse:</span> [ 
+         <span class="nv">aPdmSystem</span>
+            <span class="nf">handleSetupErrorFor:</span> <span class="bp">self</span> <span class="nf">subsystemName</span>
+            <span class="nf">with:</span>
+            <span class="s">&#39;Missing prerequisite subsystem named &#39;</span>
+            <span class="nf">,</span> <span class="nv">subsystemName</span> <span class="nf">printString</span> ] ]
+</pre></div>
+</td></tr></table></div>
+<p>Default implementation of <code class="xref pharo pharo-mref docutils literal notranslate"><span class="pre">PdmSubsystem</span> <span class="pre">class&gt;&gt;#prerequisiteSubsystemKeys</span></code> is to return an empty array. A subclass may override this by returning the Array of name strings of those subsystems they expect to already have been defined.</p>
+</div>
+<div class="section" id="starting-and-stopping-the-system">
+<h4>Starting and stopping the system<a class="headerlink" href="#starting-and-stopping-the-system" title="Permalink to this headline">¶</a></h4>
+<p>After all subsystems have been setup successfully, the system is started by sending <code class="xref pharo pharo-mref docutils literal notranslate"><span class="pre">PdmSubsystem&gt;&gt;#startUp</span></code> to each of the configured subsystems in the given order of definition.</p>
+<p>When the concrete system instance later will be closed, it receives message</p>
+<span class="target" id="pharo-compiledMethod-1"></span><div class="highlight-smalltalk notranslate" id="pharo-compiledmethod-pdmabstractsystem-stopsubsystems"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="c">&quot;PdmAbstractSystem, protocol API&quot;</span>
+<span class="nf">stopSubsystems</span>
+
+   <span class="nv">subsystems</span> <span class="nf">do:</span> [ <span class="o">:</span><span class="nv">e</span> <span class="o">|</span> <span class="nv">e</span> <span class="nf">stop</span> ]
+</pre></div>
+</td></tr></table></div>
+<p>By that it will stop the subsystems in reverse order of definition. Normally, a subsytem will not need to perform any action here, but may disconnect from external resources.</p>
+</div>
+<div class="section" id="root-application-builder">
+<h4>Root application builder<a class="headerlink" href="#root-application-builder" title="Permalink to this headline">¶</a></h4>
+<p>Wheras most of the subsystems are modules to provide certain functionality like database access or a client to load document files from the delta server, a subsystem inheriting from class <a class="reference internal" href="#pharo-class-pdmabstractrootappbuilder" title="pharo-class-pdmabstractrootappbuilder"><code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmAbstractRootAppBuilder</span></code></a> is always expected to exist. This root application builder subclass has the purpose of opening an application for interaction, in our case the application for pdm document manangement which is created by the subclass <a class="reference internal" href="#pharo-class-pdmabstractrootappbuilder" title="pharo-class-pdmabstractrootappbuilder"><code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmAbstractRootAppBuilder</span></code></a>.</p>
+<p>As our application especially supports a GUI design based on a master ribbon panel containing switchable tabs for several subapplications, already the abstract base class supports this pattern of a root application at the top level managing several subapplications:</p>
+<span class="target" id="pharo-class-0"></span><div class="highlight-smalltalk notranslate" id="pharo-class-pdmabstractrootappbuilder"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="nc">PdmSubsystem</span> <span class="nf">subclass:</span> <span class="ss">#PdmAbstractRootAppBuilder</span>
+	<span class="nf">instanceVariableNames:</span> <span class="s">&#39;rootApplication subappBuilder builtUIs subappBuilders announcer&#39;</span>
+	<span class="nf">classVariableNames:</span> <span class="s">&#39;&#39;</span>
+	<span class="nf">package:</span> <span class="s">&#39;Documaps Startup&#39;</span>
+</pre></div>
+</td></tr></table></div>
+<p>As the root application builder is still one subsystem among several others (which it is mostly a dependent of), it has to be recognized by the whole framework in certain cases, and thus implements</p>
+<span class="target" id="pharo-compiledMethod-2"></span><div class="highlight-smalltalk notranslate" id="pharo-compiledmethod-pdmabstractrootappbuilder-isrootappbuilder"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="c">&quot;PdmAbstractRootAppBuilder, protocol testing&quot;</span>
+<span class="nf">isRootAppBuilder</span>
+
+   <span class="o">^</span> <span class="bp">true</span>
+</pre></div>
+</td></tr></table></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When this need changes and the referred method will be deleted, which is expected to happen in the near future, the paragraph above will be obsolete, which should be detected by the documentation generator.</p>
+</div>
+<p>From a software design point of view, one might think that “the application itself” is logically not a subsystem, but something different instead that always exists. On a closer look, every application instance somehow has to be constructed, typically based on a configuration. Modern applications will also not only provide one general-purpose layout, but support different types of appearance, maybe even depending of what subsystems in which configurations are available. From that perspective, representing the builder of the main application as a subsystem of a specific subclass (<a class="reference internal" href="#pharo-class-pdmabstractrootappbuilder" title="pharo-class-pdmabstractrootappbuilder"><code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmAbstractRootAppBuilder</span></code></a>) can be considered as acceptable as well as useful: The root application builder thus can reuse the basic subsystem behavior, especially for checking configuration and dependencies.</p>
+</div>
+</div>
+</div>
+<div class="section" id="system-configuration-types">
+<span id="pdm-system-configuration-types"></span><h2>System configuration types<a class="headerlink" href="#system-configuration-types" title="Permalink to this headline">¶</a></h2>
+<p>A system configuration by itself only decides how configuration data are retrieved on startup, according to the different subclasses preimplemented below <code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmSystemConfig</span></code>. All of them implement mainly the same method, as it is shown here for class <code class="xref pharo pharo-cref docutils literal notranslate"><span class="pre">PdmSystemConfigDefault</span></code> which provides a default configuration:</p>
+<span class="target" id="pharo-compiledMethod-3"></span><div class="highlight-smalltalk notranslate" id="pharo-compiledmethod-pdmsystemconfigdefault-readsubsystemconfigsfortokens"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="c">&quot;PdmSystemConfigDefault, protocol private&quot;</span>
+<span class="nf">readSubsystemConfigsForTokens:</span> <span class="nv">tokenList</span>
+
+   <span class="c">&quot;No tokens expected here&quot;</span>
+
+   <span class="o">|</span><span class="nv"> configs </span><span class="o">|</span>
+   <span class="nv">configs</span> <span class="o">:=</span> <span class="nc">OrderedCollection</span> <span class="nb">new</span><span class="p">.</span>
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span> <span class="nf">for:</span> <span class="s">&#39;PDM Logging&#39;</span> <span class="nf">withParams:</span> { 
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;Folder = logs&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;Prefix = DeltaServer&#39;</span>) })<span class="p">.</span>
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;Localization&#39;</span>
+          <span class="nf">withParams:</span> { (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;Locale = de-DE&#39;</span>) })<span class="p">.</span>
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span> <span class="nf">for:</span> <span class="s">&#39;PDM Tasks&#39;</span> <span class="nf">withParams:</span> {  })<span class="p">.</span>
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span> <span class="nf">for:</span> <span class="s">&#39;PDM UI&#39;</span> <span class="nf">withParams:</span> {  })<span class="p">.</span>
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span> <span class="nf">for:</span> <span class="s">&#39;Glorp&#39;</span> <span class="nf">withParams:</span> { 
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;HostName = localhost&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;PortNumber = 5433&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;DatabaseName = pdmCC&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;UserName = pdm&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;AllowPersistentLoginConfig = true&#39;</span>) })<span class="p">.</span>
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;Cached Properties&#39;</span>
+          <span class="nf">withParams:</span> { (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;SourceName = Glorp&#39;</span>) })<span class="p">.</span>
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;Resource Icon Base&#39;</span>
+          <span class="nf">withParams:</span>
+          { (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;SVGIconBaseType = PdmSVGIcons&#39;</span>) })<span class="p">.</span>
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span> <span class="nf">for:</span> <span class="s">&#39;Files&#39;</span> <span class="nf">withParams:</span> { 
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span>
+                 <span class="s">&#39;SubsystemClass = PdmDeltaClientFileSubsystem&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;ProjectBase = d:/delta/work/file&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;DeltaServerHost = localhost&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;DeltaServerPort = 11122&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span>
+                 <span class="s">&#39;ClientInternalBase = d:/delta/client&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span>
+                 <span class="s">&#39;ClientTransferBase = d:/delta/client&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;WorkBase = d:/delta/work&#39;</span>) })<span class="p">.</span>
+   <span class="nv">configs</span> <span class="nf">add:</span>
+      (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;PDM Workers Manager System&#39;</span>
+          <span class="nf">withParams:</span> {  })<span class="p">.</span>
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;PDM Document Previews System&#39;</span>
+          <span class="nf">withParams:</span> {  })<span class="p">.</span>
+
+
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;PDM File Opening System&#39;</span>
+          <span class="nf">withParams:</span>
+          { (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span> <span class="s">&#39;UseWorkerImage = false&#39;</span>) })<span class="p">.</span>
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;FileTypeIcons&#39;</span>
+          <span class="nf">withParams:</span>
+          { (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span>
+              <span class="s">&#39;RasterIconBaseType = PdmFileTypeIcons&#39;</span>) })<span class="p">.</span>
+   <span class="nv">configs</span> <span class="nf">add:</span> (<span class="nc">PdmSubsystemConfig</span>
+          <span class="nf">for:</span> <span class="s">&#39;Application Settings&#39;</span>
+          <span class="nf">withParams:</span>
+          { (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span>
+              <span class="s">&#39;SettingsJson =ApplicationSettings.json&#39;</span>) })<span class="p">.</span>
+   <span class="nv">configs</span> <span class="nf">add:</span>
+      (<span class="nc">PdmSubsystemConfig</span> <span class="nf">for:</span> <span class="s">&#39;Progress-Status&#39;</span> <span class="nf">withParams:</span> {  })<span class="p">.</span>
+   <span class="nv">configs</span> <span class="nf">add:</span>
+      (<span class="nc">PdmSubsystemConfig</span> <span class="nf">for:</span> <span class="s">&#39;PDM Application&#39;</span> <span class="nf">withParams:</span> { 
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span>
+                 <span class="s">&#39;SubappBuilderType = PdmSubappConfigTypeExplorer&#39;</span>)<span class="p">.</span>
+             (<span class="nc">PdmConfigParam</span> <span class="nf">fullString:</span>
+                 <span class="s">&#39;ActiveSubappBuilderTypes = PdmSubappConfigTypeExplorer,PdmSubappConfigTypeCalendar&#39;</span>) })<span class="p">.</span>
+   <span class="o">^</span> <span class="nv">configs</span>
+</pre></div>
+</td></tr></table></div>
+<p>This default configuration is used in case no other configuration can be found, and also serves the purpose to document the available settings directly in the code. Reading configuration data from JSON file is done by</p>
+<span class="target" id="pharo-compiledMethod-4"></span><div class="highlight-smalltalk notranslate" id="pharo-compiledmethod-pdmsystemconfigjsonfile-readsubsystemconfigsfortokens"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="c">&quot;PdmSystemConfigJsonFile, protocol private&quot;</span>
+<span class="nf">readSubsystemConfigsForTokens:</span> <span class="nv">tokenList</span>
+
+   <span class="c">&quot;Expects at least one token for a filename. Multiple files are allowed, all subsystemConfigs will be aggregated into result.&quot;</span>
+
+   <span class="o">|</span><span class="nv"> configs </span><span class="o">|</span>
+   <span class="nv">tokenList</span> <span class="nf">isEmpty</span> <span class="nb">ifTrue:</span> [ 
+      <span class="bp">self</span>
+         <span class="nf">pdmError:</span> <span class="ss">#PdmSystemConfigErrorEmptyTokenList</span>
+         <span class="nf">attribute:</span> <span class="bp">self</span> <span class="nf">class</span> <span class="nf">name</span> ]<span class="p">.</span>
+   <span class="nv">configs</span> <span class="o">:=</span> <span class="nc">OrderedCollection</span> <span class="nb">new</span><span class="p">.</span>
+   <span class="nv">tokenList</span> <span class="nf">do:</span> [ <span class="o">:</span><span class="nv">nextToken</span> <span class="o">|</span> 
+      <span class="o">|</span><span class="nv"> nextFileRef </span><span class="o">|</span>
+      <span class="nv">nextFileRef</span> <span class="o">:=</span> <span class="nv">nextToken</span> <span class="nf">asFileReference</span><span class="p">.</span>
+      <span class="nv">nextFileRef</span> <span class="nf">path</span> <span class="nf">isRelative</span> <span class="nb">ifTrue:</span> [ 
+         <span class="nv">nextFileRef</span> <span class="o">:=</span> <span class="nc">PdmSystem</span> <span class="nf">pdmUserDocumentsPath</span> <span class="nf">asFileReference</span> 
+                           <span class="nf">resolveReference:</span> <span class="nv">nextFileRef</span> ]<span class="p">.</span>
+      (<span class="nv">nextFileRef</span> <span class="nf">exists</span> <span class="nf">and:</span> [ <span class="nv">nextFileRef</span> <span class="nf">isDirectory</span> <span class="nf">not</span> ]) <span class="nb">ifFalse:</span> [ 
+         <span class="bp">self</span>
+            <span class="nf">pdmError:</span> <span class="ss">#PdmSystemConfigErrorMissingFile</span>
+            <span class="nf">attribute:</span> <span class="nv">nextFileRef</span> <span class="nf">fullName</span> ]<span class="p">.</span>
+      <span class="nv">configs</span> <span class="nf">addAll:</span> (<span class="bp">self</span> <span class="nf">class</span>
+             <span class="nf">createSubsystemConfigsOnJsonFile:</span> <span class="nv">nextFileRef</span>
+             <span class="nf">topKey:</span> <span class="s">&#39;PdmSystemConfig&#39;</span>) ]<span class="p">.</span>
+   <span class="o">^</span> <span class="nv">configs</span>
+</pre></div>
+</td></tr></table></div>
+<p>An other possibility is</p>
+<span class="target" id="pharo-compiledMethod-5"></span><div class="highlight-smalltalk notranslate" id="pharo-compiledmethod-pdmsystemconfigcode-readsubsystemconfigsfortokens"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="c">&quot;PdmSystemConfigCode, protocol private&quot;</span>
+<span class="nf">readSubsystemConfigsForTokens:</span> <span class="nv">tokenList</span>
+
+   <span class="c">&quot;First token must be name of subclass of this class.</span>
+<span class="c">   This subclass must use a reimplementation of this method in order to avoid endless recursion.&quot;</span>
+
+   <span class="o">|</span><span class="nv"> nameToSearch sc </span><span class="o">|</span>
+   <span class="nv">tokenList</span> <span class="nf">isEmpty</span> <span class="nb">ifTrue:</span> [ 
+      <span class="bp">self</span>
+         <span class="nf">pdmError:</span> <span class="ss">#PdmSystemConfigErrorEmptyTokenList</span>
+         <span class="nf">attribute:</span> <span class="bp">self</span> <span class="nf">class</span> <span class="nf">name</span> ]<span class="p">.</span>
+   <span class="nv">nameToSearch</span> <span class="o">:=</span> <span class="nv">tokenList</span> <span class="nf">first</span><span class="p">.</span>
+   <span class="nv">sc</span> <span class="o">:=</span> <span class="bp">self</span> <span class="nf">class</span> <span class="nf">allSubclasses</span>
+            <span class="nf">detect:</span> [ <span class="o">:</span><span class="nv">c</span> <span class="o">|</span> <span class="nv">c</span> <span class="nf">name</span> <span class="nf">=</span> <span class="nv">nameToSearch</span> ]
+            <span class="nf">ifNone:</span> [ 
+               <span class="bp">self</span>
+                  <span class="nf">pdmError:</span> <span class="ss">#PdmSystemConfigErrorUnknownCodeClass</span>
+                  <span class="nf">attribute:</span> <span class="nv">nameToSearch</span> ]<span class="p">.</span>
+   <span class="bp">self</span> <span class="nf">class</span> <span class="nf">==</span> <span class="nc">PdmSystemConfigCode</span> <span class="nb">ifFalse:</span> [ <span class="c">&quot;Avoid endless recursion due to missing implementation of this method in subclass&quot;</span>
+      <span class="bp">self</span>
+         <span class="nf">pdmError:</span> <span class="ss">#PdmSystemConfigErrorMissingImplementation</span>
+         <span class="nf">attribute:</span> <span class="bp">self</span> <span class="nf">class</span> <span class="nf">name</span> ]<span class="p">.</span>
+   <span class="o">^</span> <span class="nv">sc</span> <span class="nb">new</span> <span class="nf">readSubsystemConfigsForTokens:</span> <span class="nv">tokenList</span>
+</pre></div>
+</td></tr></table></div>
+<p>Please mind that the implementation in any subclass is not a normal overwrite: As the name of the class to use is not known in advance, but passed by an environment variable, the superclass implementation is always called first. By that, it is also made sure that only a subclass of PdmSystemConfigCode may be called this ways.</p>
+<p>(to be continued: Using the environment variable <code class="docutils literal notranslate"><span class="pre">PdmSystemConfigMode</span></code>)</p>
+</div>
+<div class="section" id="configuration-of-subsystems">
+<span id="pdm-configuration-of-subsystems"></span><h2>Configuration of subsystems<a class="headerlink" href="#configuration-of-subsystems" title="Permalink to this headline">¶</a></h2>
+<p>(to be continued)</p>
+</div>
+</div>
+
+
+          </div>
+              <div class="related bottom">
+                &nbsp;
+  <nav id="rellinks">
+    <ul>
+        <li>
+          &larr;
+          <a href="index.html" title="Previous document">Welcome to PDM’s documentation!</a>
+        </li>
+    </ul>
+  </nav>
+              </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2021, Richard Uttner and Massimo Nocentini.
+      
+      |
+      <a href="_sources/Pdm_Client_Architecture.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
